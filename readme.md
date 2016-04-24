@@ -158,7 +158,7 @@ c31.3412.58false2016-04-242016-04-24 12:12:12.125
 
 设置本地运行模式setMaster("local[2]")，运行DataLoad.scala即可。
 
-测试结果：
+测试结果：</br>
 ![Alt text](http://7xoqbc.com1.z0.glb.clouddn.com/hadoop-spark-sql-demo-sel.png)
 
 
