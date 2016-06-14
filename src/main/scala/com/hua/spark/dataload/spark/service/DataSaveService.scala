@@ -7,6 +7,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericRow
 import org.apache.spark.sql.hive.HiveContext
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.{Row, SaveMode}
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -14,6 +15,8 @@ import scala.collection.mutable.ArrayBuffer
   * Created by hua on 2016/4/24.
   */
 class DataSaveService extends Serializable {
+
+  private val LOG: Logger = LoggerFactory.getLogger(classOf[DataSaveService])
 
   /**
     * 将分割后的数组,已文本格式存入hdfs中
@@ -60,16 +63,26 @@ class DataSaveService extends Serializable {
 
     // 字段类型转换
     val rows: RDD[Row] = columnValues.map(columns => {
-      var index: Int = 0
-      // 解析字段值
-      val columnList: ArrayBuffer[Any] = new ArrayBuffer[Any]()
-      for (value <- columns) {
-        // 根据字段类型，将字符串解析成与字段类型匹配对象的值
-        columnList += SparkTypeUtils.parseValue(columnsTypeCode(index), value, ConfigUtils.config.getConfig(Constants.COLUMNS_FORMAT), dataType, index)
-        index += 1
+
+      var result: GenericRow = null
+
+      // 判断解析字段和表里的字段个数是否一致
+      if (columns.length != dtypes.length) {
+        LOG.info("columns.length != dtypes.length ,return null.")
+      } else {
+        var index: Int = 0
+        // 解析字段值
+        val columnList: ArrayBuffer[Any] = new ArrayBuffer[Any]()
+        for (value <- columns) {
+          // 根据字段类型，将字符串解析成与字段类型匹配对象的值
+          columnList += SparkTypeUtils.parseValue(columnsTypeCode(index), value, ConfigUtils.config.getConfig(Constants.COLUMNS_FORMAT), dataType, index)
+          index += 1
+        }
+        // 生成hive row对象
+        result = new GenericRow(columnList.toArray[Any])
       }
-      // 生成hive row对象
-      new GenericRow(columnList.toArray[Any])
+
+      result
     })
     // 存入hive
     hiveContext.createDataFrame(rows, schema).write.mode(SaveMode.Append).saveAsTable(tableName)
