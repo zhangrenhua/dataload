@@ -23,7 +23,7 @@ class LineFilterService extends Serializable {
     * @param datas        数据RDD
     * @return RDD
     */
-  def lineFilter(lineRegex: String, errExit: Boolean, errLineAccum: Accumulator[Int], datas: RDD[(LongWritable, String)]): RDD[(LongWritable, String)] = {
+  def lineFilter(lineRegex: String, errExit: Boolean, errLineAccum: Accumulator[Long], datas: RDD[(LongWritable, String)]): RDD[(LongWritable, String)] = {
 
     datas.filter { case (key, value) =>
       val matches: Boolean = value.matches(lineRegex)
