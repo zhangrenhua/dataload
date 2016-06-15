@@ -32,7 +32,7 @@ object DataLoad {
       LOG.error(
         """数据类型不能为空,运行示例：dataload.jar [datatype] [configName]
           datatype：数据类型，配置文件中的root路径
-          configName：配置文件路径，只支持classes路径，请将配置文件上传到classes路径：spark-submit --file configPath
+          configName：配置文件路径，只支持classes路径，请将配置文件上传到classes路径：spark-submit --files configPath
         """.stripMargin)
 
       System.exit(-1)
@@ -82,7 +82,8 @@ object DataLoad {
     // 初始化spark context
     initSparkConfig(dataType, sparkConf)
     val sc = new SparkContext(sparkConf)
-    val errLineAccum: Accumulator[Int] = sc.accumulator(0, "行匹配错误计数器")
+    val errLineAccum: Accumulator[Long] = sc.accumulator(0, "行匹配错误计数器")
+    val columnLengthAccum: Accumulator[Long] = sc.accumulator(0, "字段长度不匹配计数器")
 
     // 读取数据,并转码
     var datas: RDD[(LongWritable, String)] = sc.newAPIHadoopFile(inputPath, classOf[TextInputFormat], classOf[LongWritable], classOf[Text], hadoopConf).map { case (key, value) =>
@@ -100,12 +101,14 @@ object DataLoad {
     // 保存数据
     val saveService: DataSaveService = new DataSaveService()
     if (storeType.equalsIgnoreCase("hive")) {
-      saveService.saveAsTable(dataType, tableName, sc, columnValues)
+      saveService.saveAsTable(dataType, tableName, sc, columnValues, columnLengthAccum)
     } else {
       saveService.saveAsText(outputPath, outputSplit, columnValues)
     }
 
-    LOG.info("errLineAccum:" + errLineAccum.value)
+    LOG.info(errLineAccum.name + ":" + errLineAccum.value)
+    LOG.info(columnLengthAccum.name + ":" + columnLengthAccum.value)
+
   }
 
   /**
