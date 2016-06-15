@@ -1,7 +1,8 @@
 package com.hua.spark.dataload.spark.service
 
 import com.hua.spark.dataload.spark.utils.{ConfigUtils, Constants, SparkTypeUtils}
-import org.apache.spark.SparkContext
+import com.typesafe.config.Config
+import org.apache.spark.{Accumulator, SparkContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.expressions.GenericRow
 import org.apache.spark.sql.hive.HiveContext
@@ -51,7 +52,7 @@ class DataSaveService extends Serializable {
     * @param sc           sparkContext
     * @param columnValues 字段数组RDD
     */
-  def saveAsTable(dataType: String, tableName: String, sc: SparkContext, columnValues: RDD[Array[String]]): Unit = {
+  def saveAsTable(dataType: String, tableName: String, sc: SparkContext, columnValues: RDD[Array[String]], columnLengthAccum: Accumulator[Long]): Unit = {
     // 初始化hiveContext
     val hiveContext: HiveContext = new HiveContext(sc)
 
@@ -60,14 +61,16 @@ class DataSaveService extends Serializable {
     val columnsDataType: Array[StructField] = SparkTypeUtils.generateColumnSchema(dtypes)
     val columnsTypeCode: Array[Int] = SparkTypeUtils.getDataTypeCode(columnsDataType)
     val schema: StructType = DataTypes.createStructType(columnsDataType)
+    val config: Config = ConfigUtils.config.getConfig(Constants.COLUMNS_FORMAT)
 
     // 字段类型转换
     val rows: RDD[Row] = columnValues.map(columns => {
 
-      var result: GenericRow = null
+      var result: Row = null
 
       // 判断解析字段和表里的字段个数是否一致
       if (columns.length != dtypes.length) {
+        columnLengthAccum += 1
         LOG.info("columns.length != dtypes.length ,return null.")
       } else {
         var index: Int = 0
@@ -75,7 +78,7 @@ class DataSaveService extends Serializable {
         val columnList: ArrayBuffer[Any] = new ArrayBuffer[Any]()
         for (value <- columns) {
           // 根据字段类型，将字符串解析成与字段类型匹配对象的值
-          columnList += SparkTypeUtils.parseValue(columnsTypeCode(index), value, ConfigUtils.config.getConfig(Constants.COLUMNS_FORMAT), dataType, index)
+          columnList += SparkTypeUtils.parseValue(columnsTypeCode(index), value, config, dataType, index)
           index += 1
         }
         // 生成hive row对象
@@ -83,7 +86,8 @@ class DataSaveService extends Serializable {
       }
 
       result
-    })
+    }).filter(row => row != null)
+
     // 存入hive
     hiveContext.createDataFrame(rows, schema).write.mode(SaveMode.Append).saveAsTable(tableName)
   }
