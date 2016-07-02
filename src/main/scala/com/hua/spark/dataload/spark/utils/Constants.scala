@@ -80,5 +80,18 @@ object Constants {
     */
   val DATA_STORE_TEXT_COLUMNS_SPLITSTR = "data.store.text.columns.splitstr"
 
+  /**
+    * 定长分割
+    */
+  val FIELD_SPLIT_FIXED = "fixed"
 
+  /**
+    * 正则分割
+    */
+  val FIELD_SPLIT_REGEX = "regex"
+
+  /**
+    * 字符串分割
+    */
+  val FIELD_SPLIT_SPLITSTR = "splitstr"
 }

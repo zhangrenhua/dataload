@@ -1,10 +1,10 @@
 package com.hua.spark.dataload.spark.service
 
 import com.hua.spark.dataload.common.{BigDataLoadException, CommonUtils}
+import com.hua.spark.dataload.spark.utils.Constants
 import org.apache.hadoop.io.LongWritable
 import org.apache.spark.rdd.RDD
 
-import scala.collection.mutable.ArrayBuffer
 import scala.util.matching.Regex
 import scala.util.matching.Regex.MatchIterator
 
@@ -27,20 +27,23 @@ class LineSplitService extends Serializable {
     */
   def splitText(datas: RDD[(LongWritable, String)], fieldSplitType: String, fixedLength: String, splitChar: String, regex: Regex, columnsLength: Int): RDD[Array[String]] = {
     var columnValues: RDD[Array[String]] = null
-    if (fieldSplitType.equalsIgnoreCase("fixed")) {
+    if (fieldSplitType.equalsIgnoreCase(Constants.FIELD_SPLIT_FIXED)) {
       val fixedLengths: Array[Int] = fixedLength.split(",").map(a => a.toInt)
       columnValues = datas.map {
         case (key, value) => splitFixed(value, fixedLengths, columnsLength)
       }
-    } else if (fieldSplitType.equalsIgnoreCase("regex")) {
+    } else if (fieldSplitType.equalsIgnoreCase(Constants.COLUMNS_SPLIT_REGEX)) {
       columnValues = datas.map {
         case (key, value) => splitRegex(value, regex, columnsLength)
       }
-    } else if (fieldSplitType.equalsIgnoreCase("splitstr")) {
+    } else if (fieldSplitType.equalsIgnoreCase(Constants.FIELD_SPLIT_SPLITSTR)) {
       columnValues = datas.map {
         case (key, value) => splitStr(value, splitChar, columnsLength)
       }
+    } else {
+      throw new BigDataLoadException("Field split type cannot be empty.")
     }
+
     columnValues
   }
 
@@ -72,23 +75,26 @@ class LineSplitService extends Serializable {
     */
   def splitFixed(value: String, fixedLengths: Array[Int], cloumnsLength: Int): Array[String] = {
 
-    val columns: ArrayBuffer[String] = new ArrayBuffer[String]()
+    val columnsValue: Array[String] = new Array[String](fixedLengths.length)
     var index = 0
+    var valueIndex = 0
     val lineBytes = value.getBytes("UTF-8")
-    fixedLengths.foreach(columnLength => {
+    fixedLengths.foreach(valueLength => {
 
-      val columnValue: Array[Byte] = new Array[Byte](columnLength)
+      val columnValue: Array[Byte] = new Array[Byte](valueLength)
       // 定长截取
-      System.arraycopy(lineBytes, index, columnValue, 0, columnLength)
-      columns.append(new String(columnValue, "UTF-8"))
+      System.arraycopy(lineBytes, index, columnValue, 0, valueLength)
+      columnsValue(valueIndex) = new String(columnValue, "UTF-8")
 
-      index += columnLength
+      valueIndex += 1
+      index += valueLength
     })
 
-    if (cloumnsLength > 0 && columns.length != cloumnsLength) {
-      throw new BigDataLoadException(CommonUtils.append("The columns length is not consistent,lineText:", value, ";fixedLength:", fixedLengths.toList, ";splitLength:" + columns.length))
+    // 校验长度
+    if (cloumnsLength > 0 && columnsValue.length != cloumnsLength) {
+      throw new BigDataLoadException(CommonUtils.append("The columns length is not consistent,lineText:", value, ";fixedLength:", fixedLengths.toList, ";splitLength:" + columnsValue.length))
     }
-    columns.toArray
+    columnsValue
   }
 
   /**
@@ -101,19 +107,20 @@ class LineSplitService extends Serializable {
     * @return
     */
   def splitRegex(value: String, regex: Regex, cloumnsLength: Int): Array[String] = {
-    val columns: ArrayBuffer[String] = new ArrayBuffer[String]()
 
     val in: MatchIterator = regex.findAllIn(value)
+    val columnsValue: Array[String] = new Array[String](in.groupCount)
     for (i <- 1 to in.groupCount) {
       if (in.hasNext) {
-        columns.append(in.group(i))
+        columnsValue(i - 1) = in.group(i)
       }
     }
 
-    if (cloumnsLength > 0 && columns.length != cloumnsLength) {
-      throw new BigDataLoadException(CommonUtils.append("The columns length is not consistent,lineText:", value, ";Regex:", regex, ";splitLength:" + columns.length))
+    // 校验长度
+    if (cloumnsLength > 0 && columnsValue.length != cloumnsLength) {
+      throw new BigDataLoadException(CommonUtils.append("The columns length is not consistent,lineText:", value, ";Regex:", regex, ";splitLength:" + columnsValue.length))
     }
-    columns.toArray
+    columnsValue
   }
 
 }

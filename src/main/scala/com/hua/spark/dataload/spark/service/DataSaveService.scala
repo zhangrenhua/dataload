@@ -78,7 +78,7 @@ class DataSaveService extends Serializable {
         val columnList: ArrayBuffer[Any] = new ArrayBuffer[Any]()
         for (value <- columns) {
           // 根据字段类型，将字符串解析成与字段类型匹配对象的值
-          columnList += SparkTypeUtils.parseValue(columnsTypeCode(index), value, config, dataType, index)
+          columnList += SparkTypeUtils.parseValue(columnsTypeCode(index), value, config, index)
           index += 1
         }
         // 生成hive row对象

@@ -38,7 +38,7 @@ object DataLoad {
       System.exit(-1)
     }
 
-    /**
+    /*
       * 加载配置文件
       */
     val dataType: String = args(0)
@@ -47,7 +47,7 @@ object DataLoad {
     // 初始化hadoop参数配置
     val hadoopConf: Configuration = initHadoopConfig(args, dataType, ConfigUtils.config)
 
-    /**
+    /*
       * Input
       */
     val inputPath: String = ConfigUtils.getString(Constants.DATA_INPUT_PATH)
@@ -55,7 +55,7 @@ object DataLoad {
     val lineRegex: String = ConfigUtils.getString(Constants.DATA_INPUT_LINE_REGEX, "")
     lazy val errExit: Boolean = ConfigUtils.getBoolean(Constants.DATA_INPUT_LINE_REGEX_ERR_EXIT)
 
-    /**
+    /*
       * 字段相关
       */
     val fieldSplitType: String = ConfigUtils.getString(Constants.COLUMNS_SPLIT_TYPE)
@@ -64,7 +64,7 @@ object DataLoad {
     val fixedLength: String = ConfigUtils.getString(Constants.COLUMNS_SPLIT_FIXED_COLUMNS_LENGTH, "")
     val columnsLength: Int = ConfigUtils.getInt(Constants.COLUMNS_FIXED_LENGTH, -1)
 
-    /**
+    /*
       * output
       */
     val storeType: String = ConfigUtils.getString(Constants.DATA_STORE_TYPE)
@@ -72,7 +72,7 @@ object DataLoad {
     lazy val outputPath: String = ConfigUtils.getString(Constants.DATA_STORE_TEXT_OUTPUT_PATH)
     lazy val outputSplit: String = ConfigUtils.getString(Constants.DATA_STORE_TEXT_COLUMNS_SPLITSTR)
 
-    /**
+    /*
       * spark 容器初始化
       */
     val sparkConf: SparkConf = new SparkConf().setAppName(String.format("BigDataLoad dataType:%s", dataType))
@@ -137,7 +137,7 @@ object DataLoad {
     * @param config   自定义参数
     */
   def initHadoopConfig(args: Array[String], dataType: String, config: Config): Configuration = {
-    /**
+    /*
       * 添加hadoop配置信息
       */
     val hadoopConf = new Configuration()

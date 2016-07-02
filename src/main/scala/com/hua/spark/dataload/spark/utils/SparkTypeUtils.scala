@@ -3,6 +3,7 @@ package com.hua.spark.dataload.spark.utils
 import java.math.BigDecimal
 import java.sql.{Date, Timestamp}
 import java.text.SimpleDateFormat
+import java.util.Locale
 
 import com.typesafe.config.Config
 import org.apache.spark.sql.types.{DataType, DataTypes, DecimalType, StructField}
@@ -18,20 +19,69 @@ import scala.util.matching.Regex
   */
 object SparkTypeUtils {
 
+  // #########################begin 类型short对应值#########################
+
   /**
-    * STRING
+    * String
     */
   val TYPE_STRING = 0
+
+  /**
+    * Int
+    */
   val TYPE_INT = 1
+
+  /**
+    * Float
+    */
   val TYPE_FLOAT = 2
+
+  /**
+    * Long
+    */
   val TYPE_LONG = 3
+
+  /**
+    * Short
+    */
   val TYPE_SHORT = 4
+
+  /**
+    * Boolean
+    */
   val TYPE_BOOLEAN = 5
+
+  /**
+    * Date
+    */
   val TYPE_DATE = 6
+
+  /**
+    * Timestamp
+    */
   val TYPE_TIMESTAMP = 7
+
+  /**
+    * Null
+    */
   val TYPE_NULL = 8
+
+  /**
+    * Decimal
+    */
   val TYPE_DECIMAL = 9
+
+  /**
+    * byte
+    */
   val TYPE_BYTE = 10
+
+  /**
+    * BinaryType
+    */
+  val TYPE_Binary = 11
+
+  // #########################end 类型short对应值#########################
 
   /**
     *
@@ -62,6 +112,8 @@ object SparkTypeUtils {
       result = TYPE_TIMESTAMP
     } else if (dType == DataTypes.ByteType) {
       result = TYPE_BYTE
+    } else if (dType == DataTypes.BinaryType) {
+      result = TYPE_Binary
     } else if (dType == DataTypes.NullType) {
       result = TYPE_NULL
     } else {
@@ -71,6 +123,12 @@ object SparkTypeUtils {
     result
   }
 
+  /**
+    * 将structfield数组内容转换成dataCode
+    *
+    * @param columnsDataType 字段数据类型
+    * @return 字段数据code
+    */
   def getDataTypeCode(columnsDataType: Array[StructField]): Array[Int] = {
     val columnsCode: ArrayBuffer[Int] = new ArrayBuffer[Int]()
 
@@ -117,6 +175,8 @@ object SparkTypeUtils {
         // 解析字段长度，DecimalType(10,0)
         val array: Array[String] = regex.findFirstIn(dType).get.split(",")
         dataType = DataTypes.createDecimalType(array(0).trim.toInt, array(1).trim.toInt)
+      } else if (dType.startsWith("byte")) {
+        dataType = DataTypes.ByteType
       } else if (dType.startsWith("binary")) {
         dataType = DataTypes.BinaryType
       } else if (dType.startsWith("null")) {
@@ -131,11 +191,36 @@ object SparkTypeUtils {
   }
 
 
-  def parseValue(typeCode: Int, value: String, config: Config, dataType: String, columnIndex: Int): Any = {
+  /**
+    * 类型转换
+    *
+    * @param typeCode    类型code
+    * @param value       字段值
+    * @param config      config对象
+    * @param columnIndex 字段序号
+    * @return 字段对应的类型值
+    */
+  def parseValue(typeCode: Int, value: String, config: Config, columnIndex: Int): Any = {
 
+    /**
+      * 日期预处理
+      */
     // "yyyy-MM-dd HH:mm:ss.S"
     lazy val pattern: String = ConfigUtils.getString(config, "date." + columnIndex)
-    lazy val format = new SimpleDateFormat(pattern)
+    lazy val local: String = ConfigUtils.getString(config, "dateLocal." + columnIndex)
+    lazy val format = {
+      var result: SimpleDateFormat = null
+      if (local == null) {
+        result = new SimpleDateFormat(pattern)
+      } else {
+        result = new SimpleDateFormat(pattern, new Locale(local))
+      }
+      result
+    }
+
+    /**
+      * 类型转换
+      */
     val resultValue = typeCode match {
       case TYPE_STRING => value;
       case TYPE_INT => value.toInt;
@@ -146,12 +231,12 @@ object SparkTypeUtils {
       case TYPE_LONG => value.toLong;
       case TYPE_SHORT => value.toShort;
       case TYPE_BOOLEAN => value.equalsIgnoreCase("true");
-      case TYPE_BYTE => value.getBytes;
+      case TYPE_BYTE => value.charAt(0).toByte;
+      case TYPE_Binary => value.getBytes;
       case TYPE_NULL => null;
     }
 
     resultValue
   }
-
 
 }

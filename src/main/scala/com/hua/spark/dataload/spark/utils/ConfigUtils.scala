@@ -25,7 +25,7 @@ object ConfigUtils {
     */
   def load(resourceBasename: String, root: String): Unit = {
     // 加载配置文件
-    config = ConfigFactory.load(resourceBasename).getConfig(root)
+    config = ConfigFactory.load(ConfigUtils.getClass.getClassLoader, resourceBasename).getConfig(root)
 
     LOG.info("-----------------------------所有参数-----------------------------")
     // 打印日志

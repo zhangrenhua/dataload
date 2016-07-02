@@ -19,6 +19,12 @@ object CommonUtils {
     sb.toString()
   }
 
+  /**
+    * 判断字符串是否为空
+    *
+    * @param value 字符串
+    * @return 真假
+    */
   def isNotBlank(value: String): Boolean = {
     value != null && value.trim.length > 0
   }
