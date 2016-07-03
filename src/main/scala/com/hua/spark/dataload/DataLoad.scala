@@ -32,7 +32,7 @@ object DataLoad {
       LOG.error(
         """数据类型不能为空,运行示例：dataload.jar [datatype] [configName]
           datatype：数据类型，配置文件中的root路径
-          configName：配置文件路径，只支持classes路径，请将配置文件上传到classes路径：spark-submit --files configPath
+          configName：配置文件路径，yarn-cluster模式请将配置文件上传到classes路径：spark-submit --files configPath，其它模式可以写绝对路径
         """.stripMargin)
 
       System.exit(-1)
