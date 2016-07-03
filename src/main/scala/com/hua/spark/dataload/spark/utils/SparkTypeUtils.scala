@@ -207,7 +207,7 @@ object SparkTypeUtils {
       */
     // "yyyy-MM-dd HH:mm:ss.S"
     lazy val pattern: String = ConfigUtils.getString(config, "date." + columnIndex)
-    lazy val local: String = ConfigUtils.getString(config, "dateLocal." + columnIndex)
+    lazy val local: String = ConfigUtils.getString(config, "dateLocale." + columnIndex)
     lazy val format = {
       var result: SimpleDateFormat = null
       if (local == null) {
